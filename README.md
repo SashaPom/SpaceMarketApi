@@ -1,1 +1,1 @@
-# SpaceMarketApi
+# cosmo-cats-api
