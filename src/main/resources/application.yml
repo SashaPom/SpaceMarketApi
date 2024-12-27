@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: cosmo-cats-api
+server:
+  port: 9090
+
+application:
+  rest-client:
+    response-timeout: 1000
+  price-advisor-service:
+    base-path: http://localhost:8089
+    advisor: ${application.price-advisor-service.base-path}/api/v1/price-comparison

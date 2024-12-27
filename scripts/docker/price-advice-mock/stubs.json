@@ -1,0 +1,33 @@
+{
+  "mappings": [
+    {
+      "id": "c0317264-7b2d-4856-ac94-0c4870e1d884",
+      "name": "Payment-Service Create Payment",
+      "request": {
+        "url": "/api/v1/price-comparison",
+        "method": "POST"
+      },
+      "response": {
+        "status": 200,
+        "jsonBody": {
+          "originalMarketPrice": 100.00,
+          "comparisons": [
+            {
+              "market": "EU",
+              "price": 95.00,
+              "priceDifference": -5.00
+            },
+            {
+              "market": "US",
+              "price": 102.50,
+              "priceDifference": 2.50
+            }
+          ]
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+    }
+  ]
+}
