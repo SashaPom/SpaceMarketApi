@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: lab-3-3
+      author: b1lok
+      changes:
+        # Modify the "cart_id" column to have type UUID
+        - modifyDataType:
+            tableName: orders
+            columnName: cart_id
+            newDataType: UUID

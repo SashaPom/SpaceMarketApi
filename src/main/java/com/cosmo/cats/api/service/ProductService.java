@@ -2,6 +2,7 @@ package com.cosmo.cats.api.service;
 
 import com.cosmo.cats.api.domain.Wearer;
 import com.cosmo.cats.api.domain.product.Product;
+import com.cosmo.cats.api.repository.projection.ProductProjection;
 import java.util.List;
 
 public interface ProductService {
@@ -17,5 +18,5 @@ public interface ProductService {
 
     List<Product> getProductsByWearer(Wearer wearer);
 
-
+    List<ProductProjection> getMostOrderedProducts();
 }

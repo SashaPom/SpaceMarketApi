@@ -7,6 +7,7 @@ import com.cosmo.cats.api.dto.product.ProductCreationDto;
 import com.cosmo.cats.api.dto.product.ProductDto;
 import com.cosmo.cats.api.dto.product.ProductUpdateDto;
 import com.cosmo.cats.api.dto.product.advisor.ProductAdvisorResponseDto;
+import com.cosmo.cats.api.repository.projection.ProductProjection;
 import com.cosmo.cats.api.service.ProductAdvisorService;
 import com.cosmo.cats.api.service.ProductService;
 import com.cosmo.cats.api.web.mapper.ProductDtoMapper;
@@ -36,6 +37,11 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<List<ProductDto>> getProducts() {
         return ResponseEntity.ok(productDtoMapper.toProductDto(productService.getProducts()));
+    }
+
+    @GetMapping("/analyze")
+    public ResponseEntity<List<ProductProjection>> getMostOrderedProducts() {
+        return ResponseEntity.ok(productService.getMostOrderedProducts());
     }
 
     @GetMapping("/{id}")

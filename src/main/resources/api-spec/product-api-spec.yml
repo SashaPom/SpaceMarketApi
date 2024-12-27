@@ -43,6 +43,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/products/analyze:
+    get:
+      summary: Retrieve the most ordered products
+      operationId: getMostOrderedProducts
+      description: >
+        Returns a list of the most ordered products, including their name, description, wearer category, and price.
+      responses:
+        '200':
+          description: A list of the most ordered products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductProjection'
 
   /api/v1/products/{id}/price-advisor:
     get:
@@ -283,3 +298,19 @@ components:
         status:
           type: integer
           example: 404
+    ProductProjection:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Product Name"
+        description:
+          type: string
+          example: "Product Description"
+        wearer:
+          type: string
+          example: "CATS"
+        price:
+          type: number
+          format: float
+          example: 49.99

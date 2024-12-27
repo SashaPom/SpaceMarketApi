@@ -29,4 +29,5 @@ public class ProductUpdateDto {
     @NotNull(message = "Stock quantity cannot be null")
     @Positive(message = "Stock quantity must be greater than 0")
     Integer stockQuantity;
+    String wearer;
 }
