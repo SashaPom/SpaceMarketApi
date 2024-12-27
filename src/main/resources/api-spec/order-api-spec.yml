@@ -1,0 +1,121 @@
+openapi: 3.0.1
+info:
+  title: Product API
+  description: API for managing products
+  version: 1.0.0
+paths:
+  /api/v1/orders:
+    post:
+      summary: Add products to an order
+      operationId: addProductToOrder
+      description: >
+        Adds a list of products to an existing order identified by the cart ID, or creates a new order if no cart ID is provided.
+        Returns the updated order details, including cart ID, order entries, and total price.
+      parameters:
+        - name: cartId
+          in: path
+          required: false
+          description: Optional cart ID to identify the order. If not provided, a new order will be created.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        description: List of products to be added to the order.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderRequestEntry'
+      responses:
+        '200':
+          description: Updated order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderContext'
+        '400':
+          description: Validation failed for the request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Cart or product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+components:
+  schemas:
+    OrderRequestEntry:
+      type: object
+      required:
+        - productName
+        - amount
+      properties:
+        productName:
+          type: string
+          example: "Product A"
+        amount:
+          type: integer
+          minimum: 0
+          example: 5
+
+    OrderContext:
+      type: object
+      properties:
+        cartId:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderEntry'
+        totalPrice:
+          type: number
+          format: float
+          example: 150.75
+
+    OrderEntry:
+      type: object
+      properties:
+        product:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "Product A"
+            price:
+              type: number
+              format: float
+              example: 30.15
+        quantity:
+          type: integer
+          example: 5
+
+    ProblemDetail:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+          example: "order-not-found"
+        title:
+          type: string
+          example: "Order not found"
+        detail:
+          type: string
+          example: "The specified cart ID does not exist."
+        status:
+          type: integer
+          example: 404

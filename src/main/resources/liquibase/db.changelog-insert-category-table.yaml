@@ -1,0 +1,32 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-category-data
+      author: qjsoq
+      changes:
+        - insert:
+            tableName: category
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: name
+                  value: "Boots"
+        - insert:
+            tableName: category
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 2
+              - column:
+                  name: name
+                  value: "Clothing"
+        - insert:
+            tableName: category
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 3
+              - column:
+                  name: name
+                  value: "Accessories"

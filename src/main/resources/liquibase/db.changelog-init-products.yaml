@@ -1,0 +1,87 @@
+databaseChangeLog:
+  - changeSet:
+      id: lab3-1
+      author: b1lok
+      changes:
+        # Create the category table
+        - createTable:
+            tableName: category
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+        # Create sequence for category_id
+        - createSequence:
+            sequenceName: category_id_seq
+            incrementBy: 50
+        # Create sequence for product_id
+        - createSequence:
+            sequenceName: product_id_seq
+            incrementBy: 50
+        # Create the product table
+        - createTable:
+            tableName: product
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                  defaultValue: "nextval('product_id_seq')"
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: price
+                  type: DECIMAL(10,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: stock_quantity
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: wearer
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+        # Add foreign key constraint for category_id
+        - addForeignKeyConstraint:
+            baseTableName: product
+            baseColumnNames: category_id
+            referencedTableName: category
+            referencedColumnNames: id
+            constraintName: fk_product_category
+        # Add unique constraint for product name within a specific category
+        - addUniqueConstraint:
+            tableName: product
+            columnNames: name, category_id
+            constraintName: uq_product_name_category
+        # Create an index on product_name for faster search
+        - createIndex:
+            tableName: product
+            columns:
+              - column:
+                  name: name
+            indexName: idx_product_name
