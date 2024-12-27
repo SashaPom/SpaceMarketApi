@@ -1,6 +1,7 @@
 package com.cosmo.cats.api.service.impl;
 
 import com.cosmo.cats.api.data.ProductRepository;
+import com.cosmo.cats.api.domain.Wearer;
 import com.cosmo.cats.api.domain.category.Category;
 import com.cosmo.cats.api.domain.product.Product;
 import com.cosmo.cats.api.service.ProductService;
@@ -53,6 +54,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public void deleteProduct(Long id) {
         productRepository.delete(id);
+    }
+
+    @Override
+    public List<Product> getProductsByWearer(Wearer wearer) {
+        return getProducts().stream().filter(product -> product.getWearer() == wearer).toList();
     }
 
     private boolean existByName(String productName) {

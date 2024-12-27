@@ -1,5 +1,6 @@
 package com.cosmo.cats.api.data;
 
+import com.cosmo.cats.api.domain.Wearer;
 import com.cosmo.cats.api.domain.category.Category;
 import com.cosmo.cats.api.domain.product.Product;
 import java.math.BigDecimal;
@@ -60,6 +61,7 @@ public class ProductRepositoryImpl implements ProductRepository {
                         .price(BigDecimal.valueOf(299.99))
                         .stockQuantity(50)
                         .category(Category.builder().id(1L).name("Space Gear").build())
+                        .wearer(Wearer.CATS)
                         .build(),
                 Product.builder()
                         .id(2L)
@@ -68,6 +70,7 @@ public class ProductRepositoryImpl implements ProductRepository {
                         .price(BigDecimal.valueOf(199.99))
                         .stockQuantity(30)
                         .category(Category.builder().id(2L).name("Space Wear").build())
+                        .wearer(Wearer.KITTIES)
                         .build(),
                 Product.builder()
                         .id(3L)
@@ -76,6 +79,7 @@ public class ProductRepositoryImpl implements ProductRepository {
                         .price(BigDecimal.valueOf(149.99))
                         .stockQuantity(100)
                         .category(Category.builder().id(3L).name("Space Tools").build())
+                        .wearer(Wearer.CATS)
                         .build()
         );
     }
