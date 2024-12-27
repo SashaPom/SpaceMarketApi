@@ -1,6 +1,12 @@
 spring:
   application:
     name: cosmo-cats-api
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jws-algorithms: RS256
+          jwk-set-uri: http://localhost:8083/wire-auth/jwks.json
   jpa:
     show-sql: true
     open-in-view: false
