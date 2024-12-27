@@ -1,9 +1,9 @@
 package com.cosmo.cats.api.domain.product;
 
+import com.cosmo.cats.api.domain.Wearer;
 import com.cosmo.cats.api.domain.category.Category;
 import java.math.BigDecimal;
 import lombok.Builder;
-import lombok.Setter;
 import lombok.Value;
 
 
@@ -16,4 +16,5 @@ public class Product {
     BigDecimal price;
     Integer stockQuantity;
     Category category;
+    Wearer wearer;
 }

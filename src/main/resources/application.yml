@@ -10,3 +10,7 @@ application:
   price-advisor-service:
     base-path: http://localhost:8089
     advisor: ${application.price-advisor-service.base-path}/api/v1/price-comparison
+  feature:
+    toggles:
+      cats-products: true
+      kitty-products: false

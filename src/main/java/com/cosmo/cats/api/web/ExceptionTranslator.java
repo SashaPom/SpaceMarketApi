@@ -1,8 +1,12 @@
 package com.cosmo.cats.api.web;
 
+import static java.net.URI.create;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.ProblemDetail.forStatusAndDetail;
 
 import com.cosmo.cats.api.service.exception.DuplicateProductNameException;
+import com.cosmo.cats.api.service.exception.FeatureIsDisabledException;
 import com.cosmo.cats.api.service.exception.ProductAdvisorApiException;
 import com.cosmo.cats.api.service.exception.ProductNotFoundException;
 import com.cosmo.cats.api.util.InvalidatedParams;
@@ -26,8 +30,8 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
   @ExceptionHandler(ProductNotFoundException.class)
   ProblemDetail handleProductNotFoundException(ProductNotFoundException ex) {
     ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
-    problemDetail.setType(URI.create("product-not-found"));
+        forStatusAndDetail(NOT_FOUND, ex.getMessage());
+    problemDetail.setType(create("product-not-found"));
     problemDetail.setTitle("Product not found");
     return problemDetail;
   }
@@ -35,8 +39,8 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
   @ExceptionHandler(DuplicateProductNameException.class)
   ProblemDetail handleDuplicateProductNameException(DuplicateProductNameException ex) {
     ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(BAD_REQUEST, ex.getMessage());
-    problemDetail.setType(URI.create("this-name-exists"));
+        forStatusAndDetail(BAD_REQUEST, ex.getMessage());
+    problemDetail.setType(create("this-name-exists"));
     problemDetail.setTitle("Duplicate name");
     return problemDetail;
   }
@@ -44,9 +48,17 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
   @ExceptionHandler(ProductAdvisorApiException.class)
   ProblemDetail handleProductAdvisorApiException(ProductAdvisorApiException ex) {
     ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
-    problemDetail.setType(URI.create("price-advisor-error"));
+        forStatusAndDetail(ex.getStatus(), ex.getMessage());
+    problemDetail.setType(create("price-advisor-error"));
     problemDetail.setTitle("Could not get price advice");
+    return problemDetail;
+  }
+
+  @ExceptionHandler(FeatureIsDisabledException.class)
+  ProblemDetail handleFeatureToggleNotEnabledException(FeatureIsDisabledException ex) {
+    ProblemDetail problemDetail = forStatusAndDetail(NOT_FOUND, ex.getMessage());
+    problemDetail.setType(create("feature-disabled"));
+    problemDetail.setTitle("Feature is disabled");
     return problemDetail;
   }
 
@@ -62,9 +74,9 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
             .build()
         ).toList();
 
-    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST,
+    ProblemDetail problemDetail = forStatusAndDetail(BAD_REQUEST,
         "Request validation failed");
-    problemDetail.setType(URI.create("validation-failed"));
+    problemDetail.setType(create("validation-failed"));
     problemDetail.setTitle("Validation Failed");
     problemDetail.setProperty("invalidParams", validationResponse);
     return ResponseEntity.status(BAD_REQUEST).body(problemDetail);

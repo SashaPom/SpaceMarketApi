@@ -1,6 +1,8 @@
 package com.cosmo.cats.api.web;
 
 
+import static com.cosmo.cats.api.domain.Wearer.CATS;
+import static com.cosmo.cats.api.domain.Wearer.KITTIES;
 import static com.cosmo.cats.api.service.exception.DuplicateProductNameException.PRODUCT_WITH_NAME_EXIST_MESSAGE;
 import static com.cosmo.cats.api.service.exception.ProductNotFoundException.PRODUCT_NOT_FOUND_MESSAGE;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -18,11 +20,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.cosmo.cats.api.WireMockConfIt;
+import com.cosmo.cats.api.annotation.DisableFeatureToggle;
+import com.cosmo.cats.api.annotation.EnableFeatureToggle;
 import com.cosmo.cats.api.data.ProductRepository;
+import com.cosmo.cats.api.domain.Wearer;
 import com.cosmo.cats.api.dto.product.ProductCreationDto;
 import com.cosmo.cats.api.dto.product.ProductUpdateDto;
 import com.cosmo.cats.api.dto.product.advisor.MarketComparisonDto;
 import com.cosmo.cats.api.dto.product.advisor.ProductAdvisorResponseDto;
+import com.cosmo.cats.api.featuretoggle.FeatureToggleExtension;
 import com.cosmo.cats.api.service.ProductAdvisorService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -33,6 +39,7 @@ import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +52,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 
 @AutoConfigureMockMvc
+@ExtendWith(FeatureToggleExtension.class)
 public class ProductControllerIT extends WireMockConfIt {
     private final String URL = "/api/v1/products";
     private final ProductCreationDto PRODUCT_CREATION = buildProductCreationDto("Star mock");
@@ -95,6 +103,20 @@ public class ProductControllerIT extends WireMockConfIt {
     void setUp() {
         productRepository.resetRepository();
         reset(productAdvisorService);
+    }
+
+    @Test
+    @SneakyThrows
+    @DisableFeatureToggle(CATS)
+    void shouldGet404FeatureDisabled() {
+        mockMvc.perform(get("/api/v1/products/wearer/{wearer}", CATS)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @SneakyThrows
+    @EnableFeatureToggle(KITTIES)
+    void shouldGet200() {
+        mockMvc.perform(get("/api/v1/products/wearer/{wearer}", KITTIES)).andExpect(status().isOk());
     }
 
     @Test
