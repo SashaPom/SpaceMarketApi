@@ -1,7 +1,6 @@
 package com.cosmo.cats.api.web;
 
 import static com.cosmo.cats.api.service.exception.OrderNotFoundException.ORDER_NOT_FOUND;
-import static com.cosmo.cats.api.service.exception.ProductNotFoundException.PRODUCT_NOT_FOUND_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,9 +18,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -47,6 +49,7 @@ public class OrderControllerIT extends AbstractIt {
 
     @Test
     @SneakyThrows
+    @WithMockUser
     @Sql("/sql/products-create.sql")
     public void shouldAddToOrder() {
         mockMvc.perform(post(URL).contentType(MediaType.APPLICATION_JSON)
@@ -56,6 +59,7 @@ public class OrderControllerIT extends AbstractIt {
 
     @Test
     @SneakyThrows
+    @WithMockUser
     @Sql("/sql/products-create.sql")
     public void shouldThrowOrderNotFoundException() {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND,

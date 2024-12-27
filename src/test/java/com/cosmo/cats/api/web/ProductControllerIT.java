@@ -5,12 +5,16 @@ import static com.cosmo.cats.api.domain.Wearer.CATS;
 import static com.cosmo.cats.api.domain.Wearer.KITTIES;
 import static com.cosmo.cats.api.service.exception.DuplicateProductNameException.PRODUCT_WITH_NAME_EXIST_MESSAGE;
 import static com.cosmo.cats.api.service.exception.ProductNotFoundException.PRODUCT_NOT_FOUND_ID;
+import static com.cosmo.cats.api.util.SecurityUtil.PRODUCT_API_KEY_HEADER;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -38,16 +42,21 @@ import java.util.List;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -66,6 +75,8 @@ public class ProductControllerIT extends AbstractIt {
   MockMvc mockMvc;
   @Autowired
   ProductRepository productRepository;
+  @MockBean
+  JwtDecoder jwtDecoder;
   @Autowired
   OrderRepository orderRepository;
   @Autowired
@@ -109,11 +120,25 @@ public class ProductControllerIT extends AbstractIt {
     productRepository.deleteAll();
     reset(productAdvisorService);
   }
+  @BeforeEach
+  void setUpMock() {
+    Jwt mockJwt = Jwt.withTokenValue("dummy-token")
+        .header("alg", "none")
+        .claim("access", "ProductApi")
+        .claim("authorities", List.of())
+        .build();
+    when(jwtDecoder.decode(anyString())).thenReturn(mockJwt);
+  }
   @Test
   @SneakyThrows
+  @WithMockUser
   @Sql({"/sql/products-create.sql", "/sql/order-create.sql", "/sql/order-entry-create.sql"})
   public void shouldAnalyzeProducts(){
-    mockMvc.perform(get(URL + "/analyze"))
+    mockMvc.perform(get(URL + "/analyze")
+            .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token")
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON)
+            .with(csrf()))
             .andExpectAll(status().isOk(),
                     jsonPath("$.length()").value(2),
                     jsonPath("$[0].name").value("Cat Star Scratcher"));
@@ -122,22 +147,32 @@ public class ProductControllerIT extends AbstractIt {
   @Test
   @SneakyThrows
   @DisableFeatureToggle(CATS)
+  @WithMockUser
   void shouldGet404FeatureDisabled() {
-    mockMvc.perform(get("/api/v1/products/wearer/{wearer}", CATS)).andExpect(status().isNotFound());
+    mockMvc.perform(get("/api/v1/products/wearer/{wearer}", CATS)
+        .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token")
+        .with(csrf())).andExpect(status().isNotFound());
   }
 
   @Test
   @SneakyThrows
   @EnableFeatureToggle(KITTIES)
+  @WithMockUser
   void shouldGet200() {
-    mockMvc.perform(get("/api/v1/products/wearer/{wearer}", KITTIES)).andExpect(status().isOk());
+    mockMvc.perform(get("/api/v1/products/wearer/{wearer}", KITTIES)
+        .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token")
+        .contentType(MediaType.APPLICATION_JSON)
+        .with(csrf())).andExpect(status().isOk());
   }
 
   @Test
   @SneakyThrows
   @Sql("/sql/products-create.sql")
+  @WithMockUser
   void shouldReturnAllProducts() {
-    mockMvc.perform(get(URL)).andExpectAll(
+    mockMvc.perform(get(URL)
+        .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token")
+        .with(csrf())).andExpectAll(
         status().isOk(),
         jsonPath("$.length()").value(6)
     );
@@ -145,11 +180,13 @@ public class ProductControllerIT extends AbstractIt {
 
   @Test
   @SneakyThrows
+  @WithMockUser
   @Sql("/sql/products-create.sql")
   void shouldReturnProductById() {
     var product = productRepository.findByNameIgnoreCase("Cat Star Toy").get();
     var id = product.getId();
-    mockMvc.perform(get(URL + "/{id}", id))
+    mockMvc.perform(get(URL + "/{id}", id).with(csrf())
+            .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token"))
         .andExpectAll(status().isOk(),
             jsonPath("$.category.id").value(1),
             jsonPath("$.name").value("Cat Star Toy"));
@@ -157,22 +194,26 @@ public class ProductControllerIT extends AbstractIt {
 
   @Test
   @SneakyThrows
+  @WithMockUser
   void shouldThrowProductNotFoundException() {
     ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND,
         String.format(PRODUCT_NOT_FOUND_ID, "999"));
     problemDetail.setType(URI.create("product-not-found"));
     problemDetail.setTitle("Product not found");
 
-    mockMvc.perform(get(URL + "/{id}", 999L)).andExpectAll(
+    mockMvc.perform(get(URL + "/{id}", 999L).with(csrf())
+        .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token")).andExpectAll(
         status().isNotFound(),
         content().json(objectMapper.writeValueAsString(problemDetail)));
   }
 
   @Test
   @SneakyThrows
+  @WithMockUser(roles = "CAT_MODERATOR")
   @Sql("/sql/products-create.sql")
   void shouldDeleteProduct() {
-    mockMvc.perform(delete(URL + "/{id}", 2L))
+    mockMvc.perform(delete(URL + "/{id}", 2L).with(csrf())
+            .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token"))
         .andExpect(status().isNoContent());
 
     var length = productRepository.findAll().size();
@@ -182,10 +223,12 @@ public class ProductControllerIT extends AbstractIt {
 
   @Test
   @SneakyThrows
+  @WithMockUser(roles = "CAT_MODERATOR")
   @Sql("/sql/products-create.sql")
   void shouldCreateProduct() {
     var result = mockMvc.perform(
-        post(URL + "/category/{id}", 2L)
+        post(URL + "/category/{id}", 2L).with(csrf())
+            .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(PRODUCT_CREATION)));
 
@@ -198,8 +241,10 @@ public class ProductControllerIT extends AbstractIt {
   @ParameterizedTest
   @MethodSource(value = "buildUnValidProductCreationDto")
   @SneakyThrows
+  @WithMockUser
   void shouldThrowMethodArgumentNotValidException(ProductCreationDto productCreationDto) {
-    mockMvc.perform(post(URL + "/category/{id}", 2L)
+    mockMvc.perform(post(URL + "/category/{id}", 2L).with(csrf())
+            .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(
                 productCreationDto)))
@@ -210,6 +255,7 @@ public class ProductControllerIT extends AbstractIt {
 
   @Test
   @SneakyThrows
+  @WithMockUser(roles = "CAT_MODERATOR")
   @Sql("/sql/products-create.sql")
   void shouldThrowDuplicateProductNameException() {
     ProblemDetail problemDetail =
@@ -219,7 +265,8 @@ public class ProductControllerIT extends AbstractIt {
     problemDetail.setType(URI.create("this-name-exists"));
     problemDetail.setTitle("Duplicate name");
 
-    mockMvc.perform(post(URL + "/category/{id}", 2L)
+    mockMvc.perform(post(URL + "/category/{id}", 2L).with(csrf())
+            .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(
                 buildProductCreationDto("Cat Star Toy"))))
@@ -229,11 +276,13 @@ public class ProductControllerIT extends AbstractIt {
 
   @Test
   @SneakyThrows
+  @WithMockUser(roles = "CAT_MODERATOR")
   @Sql("/sql/products-create.sql")
   void shouldUpdateProduct() {
     var product = productRepository.findByNameIgnoreCase("Cat Star Toy").get();
     var id = product.getId();
-    mockMvc.perform(put(URL + "/{id}/category/{categoryId}", id, 2)
+    mockMvc.perform(put(URL + "/{id}/category/{categoryId}", id, 2).with(csrf())
+            .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(PRODUCT_UPDATE)))
         .andExpectAll(status().isOk(),
@@ -243,8 +292,10 @@ public class ProductControllerIT extends AbstractIt {
   @ParameterizedTest
   @MethodSource(value = "buildUnValidProductUpdateDto")
   @SneakyThrows
+  @WithMockUser
   void shouldThrowUnValidArgumentsExceptionUpdate(ProductUpdateDto productUpdateDto) {
-    mockMvc.perform(post(URL + "/category/{id}", 2L)
+    mockMvc.perform(post(URL + "/category/{id}", 2L).with(csrf())
+            .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(
                 productUpdateDto)))
@@ -254,6 +305,7 @@ public class ProductControllerIT extends AbstractIt {
 
   @Test
   @SneakyThrows
+  @WithMockUser
   @Sql("/sql/products-create.sql")
   void shouldComparePrices() {
     var product = productRepository.findByNameIgnoreCase("Cat Star Toy").get();
@@ -263,12 +315,14 @@ public class ProductControllerIT extends AbstractIt {
             .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
             .withBody(objectMapper.writeValueAsBytes(PRODUCT_ADVISOR_RESPONSE))));
 
-    mockMvc.perform(get(URL + "/{id}/price-advisor", id)).andExpectAll(status().isOk(),
+    mockMvc.perform(get(URL + "/{id}/price-advisor", id).with(csrf())
+        .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token")).andExpectAll(status().isOk(),
         content().json(objectMapper.writeValueAsString(PRODUCT_ADVISOR_RESPONSE)));
   }
 
   @Test
   @SneakyThrows
+  @WithMockUser
   @Sql("/sql/products-create.sql")
   void shouldThrowProductAdvisorApiException() {
     var product = productRepository.findByNameIgnoreCase("Cat Star Toy").get();
@@ -282,7 +336,8 @@ public class ProductControllerIT extends AbstractIt {
     stubFor(WireMock.post("/api/v1/price-comparison")
         .willReturn(aResponse().withStatus(500)));
 
-    mockMvc.perform(get(URL + "/{id}/price-advisor", id))
+    mockMvc.perform(get(URL + "/{id}/price-advisor", id).with(csrf())
+            .header(PRODUCT_API_KEY_HEADER, "Bearer dummy-token"))
         .andExpectAll(status().isServiceUnavailable(),
             content().json(objectMapper.writeValueAsString(problemDetail)));
   }
